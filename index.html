@@ -749,6 +749,55 @@ body {
   .board-header { padding: 14px 16px 10px; }
   .board-content { padding: 12px 14px 70px; }
   .date-column { width: 160px; }
+  /* 手机端设置弹窗适配 */
+  .modal {
+    width: 92%;
+    max-width: 92%;
+    padding: 20px 18px;
+    max-height: 82vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .modal h3 { font-size: 16px; margin-bottom: 12px; }
+  .settings-section h4 { font-size: 13px; }
+  .settings-section p { font-size: 12px; }
+  .api-config-row {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .api-config-row input {
+    width: 100%;
+    padding: 10px 12px !important;
+    font-size: 14px !important;
+  }
+  .api-config-row button {
+    width: 100%;
+    padding: 10px !important;
+    font-size: 14px !important;
+  }
+  .ai-mode-btn {
+    padding: 9px 4px;
+    font-size: 11px;
+  }
+  .settings-row button {
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+  .modal-actions {
+    margin-top: 16px;
+  }
+  .modal-actions button {
+    padding: 9px 16px;
+    font-size: 13px;
+  }
+  .modal-colors .color-option {
+    width: 32px;
+    height: 32px;
+  }
+  .modal input[type="text"] {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
 }
 </style>
 </head>
@@ -856,7 +905,7 @@ body {
     <div class="settings-section">
       <h4>AI 后端配置（混合模式）</h4>
       <p>配置后端地址后，规则识别不了的复杂表达会自动调用 AI 理解。后端部署在 Vercel，API Key 存在后端环境变量里，不会暴露。</p>
-      <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <div class="api-config-row" style="display:flex;gap:8px;margin-bottom:8px;">
         <input type="text" id="apiBaseInput" placeholder="https://your-project.vercel.app/api/chat" style="flex:1;padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);">
         <button id="saveApiBtn" style="padding:8px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:13px;cursor:pointer;font-family:inherit;">保存</button>
       </div>
