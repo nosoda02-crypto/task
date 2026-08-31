@@ -1,0 +1,9 @@
+{
+  "name": "task-organizer",
+  "version": "2.0.0",
+  "description": "对话式任务整理助手 - 混合模式（规则匹配 + AI 兜底）",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  }
+}

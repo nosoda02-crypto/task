@@ -1,0 +1,2401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>任务整理助手</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="任务助手">
+<meta name="theme-color" content="#F5F2EC">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%233D5A80'/><text x='50' y='68' font-size='52' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'>T</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%233D5A80'/><text x='50' y='68' font-size='52' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'>T</text></svg>">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi5Lu75Yqh5pW055CG5Yqp5omLIiwic2hvcnRfbmFtZSI6IuS7u+WKoOWKn-iDveWIsCIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjRjVGMkVDIiwidGhlbWVfY29sb3IiOiIjRjVGMkVDIn0=">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@600;700;900&display=swap">
+<style>
+/* ===== 设计变量 ===== */
+:root {
+  --bg: #F5F2EC;
+  --bg-card: #FFFFFF;
+  --bg-soft: #EDE9E0;
+  --ink: #2C2A26;
+  --ink-soft: #6B655C;
+  --ink-faint: #A39D92;
+  --line: #D9D3C7;
+  --accent: #3D5A80;
+  --accent-soft: #E8EDF3;
+  --today: #C4633A;
+  --today-soft: #F7E8DE;
+  --user-bubble: #3D5A80;
+  --assistant-bubble: #FFFFFF;
+  --shadow: 0 1px 3px rgba(44,42,38,0.06), 0 4px 12px rgba(44,42,38,0.04);
+  --shadow-hover: 0 2px 6px rgba(44,42,38,0.08), 0 8px 24px rgba(44,42,38,0.06);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+@supports (height: 100dvh) {
+  html, body { height: 100dvh; }
+  .app-layout { height: 100dvh; }
+}
+body {
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ===== 整体布局 ===== */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ===== 左侧对话区 ===== */
+.chat-panel {
+  flex: 1.1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: var(--bg);
+  min-width: 0;
+}
+.chat-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.chat-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.chat-header-info h2 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 17px;
+  font-weight: 700;
+}
+.chat-header-info p {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.chat-stats {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-align: right;
+}
+.chat-stats b { color: var(--ink); }
+
+/* 消息流 */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.chat-messages::-webkit-scrollbar { width: 5px; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+.msg-row {
+  display: flex;
+  gap: 10px;
+  max-width: 90%;
+}
+.msg-row.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+.msg-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+.msg-row.assistant .msg-avatar {
+  background: var(--accent);
+  color: #fff;
+}
+.msg-row.user .msg-avatar {
+  background: var(--ink-soft);
+  color: #fff;
+}
+.msg-bubble {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+.msg-row.assistant .msg-bubble {
+  background: var(--assistant-bubble);
+  border: 1px solid var(--line);
+  border-top-left-radius: 4px;
+  color: var(--ink);
+}
+.msg-row.user .msg-bubble {
+  background: var(--user-bubble);
+  color: #fff;
+  border-top-right-radius: 4px;
+}
+.msg-time {
+  font-size: 10px;
+  color: var(--ink-faint);
+  margin-top: 4px;
+}
+
+/* 助手消息中的任务卡片 */
+.msg-task-cards {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.msg-task-card {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+}
+.msg-task-card.done { opacity: 0.6; }
+.msg-task-card.done .mtc-text { text-decoration: line-through; }
+.mtc-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.mtc-body { flex: 1; min-width: 0; }
+.mtc-text { color: var(--ink); line-height: 1.4; }
+.mtc-meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+.mtc-tag {
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+.mtc-tag.cat { color: #fff; }
+.mtc-tag.time { color: var(--accent); background: var(--accent-soft); }
+.mtc-tag.time.overdue { color: var(--today); background: var(--today-soft); }
+.mtc-tag.done-tag { color: var(--ink-faint); background: var(--bg-soft); }
+
+/* 输入区 */
+.chat-input-area {
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-card);
+}
+.chat-input-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+#chatInput {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  resize: none;
+  max-height: 120px;
+  min-height: 42px;
+  line-height: 1.5;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+#chatInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  background: #fff;
+}
+#chatInput::placeholder { color: var(--ink-faint); }
+.btn-send {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0 20px;
+  height: 42px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.btn-send:hover { background: #2D4A6A; }
+.btn-send:active { transform: scale(0.97); }
+.chat-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-top: 8px;
+  line-height: 1.6;
+}
+.chat-hint code {
+  background: var(--bg-soft);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+/* ===== 右侧看板区 ===== */
+.board-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  min-width: 0;
+  overflow: hidden;
+}
+.board-header {
+  padding: 18px 24px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-card);
+}
+.board-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.board-title .count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-faint);
+  font-family: 'Noto Sans SC', sans-serif;
+}
+
+/* 分类筛选栏 */
+.category-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.category-bar::-webkit-scrollbar { display: none; }
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  position: relative;
+}
+.cat-chip:hover { border-color: var(--accent); }
+.cat-chip.active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+.cat-chip .cat-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cat-chip.active .cat-dot { outline: 1.5px solid #fff; outline-offset: 1px; }
+.cat-chip .cat-num {
+  font-size: 10px;
+  opacity: 0.7;
+  background: rgba(0,0,0,0.08);
+  padding: 0 5px;
+  border-radius: 8px;
+}
+.cat-chip.active .cat-num { background: rgba(255,255,255,0.2); }
+.cat-add {
+  border-style: dashed;
+  color: var(--ink-faint);
+}
+.cat-add:hover { color: var(--accent); border-color: var(--accent); }
+
+/* 看板内容滚动区 */
+.board-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 30px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.board-content::-webkit-scrollbar { width: 5px; }
+.board-content::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+/* 看板区块 */
+.board-section { margin-bottom: 24px; }
+.board-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.03em;
+}
+.board-section-title .bar {
+  width: 3px; height: 14px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.board-section-title .bar.today-bar { background: var(--today); }
+
+/* 时间轴分列 */
+.timeline-scroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.timeline-scroll::-webkit-scrollbar { height: 5px; }
+.timeline-scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+.timeline-grid {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: min-content;
+}
+.date-column {
+  width: 180px;
+  flex-shrink: 0;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.date-column.is-today { border-color: var(--today); border-width: 1.5px; }
+.date-col-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-soft);
+}
+.date-column.is-today .date-col-header { background: var(--today-soft); }
+.date-col-main {
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.date-col-main .today-badge {
+  font-size: 9px;
+  background: var(--today);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+.date-col-sub {
+  font-size: 10px;
+  color: var(--ink-soft);
+  margin-top: 1px;
+}
+.date-col-body { padding: 6px; }
+
+/* 看板任务卡片 */
+.board-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  margin-bottom: 3px;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+.board-task:last-child { margin-bottom: 0; }
+.board-task:hover { background: var(--bg); }
+.board-task.done .bt-text { text-decoration: line-through; color: var(--ink-faint); }
+.bt-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.bt-body { flex: 1; min-width: 0; }
+.bt-text {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink);
+  word-break: break-word;
+}
+.bt-meta {
+  display: flex;
+  gap: 5px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+.bt-tag {
+  font-size: 10px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.bt-tag.time { color: var(--accent); background: var(--accent-soft); }
+.bt-tag.time.overdue { color: var(--today); background: var(--today-soft); }
+
+/* 列表型（待安排/已完成） */
+.task-list {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+}
+.task-list .board-task { padding: 9px 11px; }
+.empty-state {
+  padding: 24px;
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: 13px;
+}
+
+/* 已完成折叠 */
+.done-toggle {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.done-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.done-toggle .arrow { transition: transform 0.2s; display: inline-block; font-size: 10px; }
+.done-toggle.open .arrow { transform: rotate(90deg); }
+.done-list-wrap { display: none; margin-top: 10px; }
+.done-list-wrap.show { display: block; }
+
+/* ===== 移动端 Tab ===== */
+.mobile-tabs {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border-top: 1px solid var(--line);
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.mobile-tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+.mobile-tab.active { color: var(--accent); font-weight: 600; }
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s;
+  z-index: 2000;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== 弹窗 ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(44,42,38,0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1500;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 90%;
+  max-width: 360px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+.modal h3 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 17px;
+  margin-bottom: 16px;
+}
+.modal input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  margin-bottom: 12px;
+}
+.modal input:focus { outline: none; border-color: var(--accent); }
+.modal-colors {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.color-option {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s;
+}
+.color-option:hover { transform: scale(1.1); }
+.color-option.selected { border-color: var(--ink); }
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.modal-actions button {
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink-soft);
+}
+.modal-actions .btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* ===== 设置按钮与面板 ===== */
+.settings-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.settings-btn:hover { border-color: var(--accent); color: var(--accent); }
+.settings-btn svg { width: 18px; height: 18px; }
+
+.settings-panel {
+  max-width: 400px;
+}
+.settings-section {
+  margin-bottom: 18px;
+}
+.settings-section:last-child { margin-bottom: 0; }
+.settings-section h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.settings-section p {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.settings-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.settings-row button {
+  flex: 1;
+  min-width: 100px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink-soft);
+  transition: all 0.15s;
+}
+.settings-row button:hover { border-color: var(--accent); color: var(--accent); }
+.settings-row button.danger:hover { border-color: var(--today); color: var(--today); background: var(--today-soft); }
+.settings-row button.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.settings-row button.primary:hover { background: #2D4A6A; color: #fff; }
+
+/* AI 模式选择器 */
+.ai-mode-group {
+  display: flex;
+  gap: 6px;
+}
+.ai-mode-btn {
+  flex: 1;
+  padding: 8px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink-soft);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  text-align: center;
+}
+.ai-mode-btn:hover { border-color: var(--accent); color: var(--accent); }
+.ai-mode-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.ai-mode-desc {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+#importFile { display: none; }
+.settings-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 16px 0;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .app-layout { flex-direction: column; height: calc(100dvh - 50px); height: calc(100vh - 50px); }
+  @supports (height: 100dvh) {
+    .app-layout { height: calc(100dvh - 50px); }
+  }
+  .chat-panel { border-right: none; border-bottom: 1px solid var(--line); }
+  .board-panel { display: none; }
+  .app-layout.show-board .chat-panel { display: none; }
+  .app-layout.show-board .board-panel { display: flex; }
+  .mobile-tabs { display: flex; }
+  .chat-header { padding: 14px 16px; }
+  .chat-messages { padding: 14px 16px; }
+  .chat-input-area { padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .board-header { padding: 14px 16px 10px; }
+  .board-content { padding: 12px 14px 70px; }
+  .date-column { width: 160px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-layout" id="appLayout">
+
+  <!-- ===== 左侧对话区 ===== -->
+  <div class="chat-panel">
+    <div class="chat-header">
+      <div class="chat-avatar">助</div>
+      <div class="chat-header-info">
+        <h2>任务整理助手</h2>
+        <p>告诉我任务，我帮你分类、排时间、跟进状态</p>
+      </div>
+      <div class="chat-stats">
+        <div>待办 <b id="statPending">0</b></div>
+        <div>已完成 <b id="statDone">0</b></div>
+      </div>
+      <button class="settings-btn" id="settingsBtn" title="设置与数据管理">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-area">
+      <div class="chat-input-wrap">
+        <textarea id="chatInput" placeholder="直接说就行，比如：明天下午3点 #论文 交开题报告" rows="1"></textarea>
+        <button class="btn-send" id="btnSend">发送</button>
+      </div>
+      <div class="chat-hint">
+        试试：<code>#论文 周五前完成文献综述</code> · <code>买咖啡豆 #生活</code> · <code>开题报告做完了</code> · <code>把会议改到下周一</code> · <code>今天有什么</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 右侧看板区 ===== -->
+  <div class="board-panel">
+    <div class="board-header">
+      <div class="board-title">
+        任务看板
+        <span class="count" id="boardCount">共 0 项</span>
+      </div>
+      <div class="category-bar" id="categoryBar"></div>
+    </div>
+    <div class="board-content" id="boardContent">
+      <div class="empty-state" id="boardEmpty">还没有任务，在左边跟助手说一声吧</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 移动端 Tab -->
+<div class="mobile-tabs">
+  <button class="mobile-tab active" data-tab="chat">对话</button>
+  <button class="mobile-tab" data-tab="board">看板</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- 新建分类弹窗 -->
+<div class="modal-overlay" id="catModal">
+  <div class="modal">
+    <h3>新建分类</h3>
+    <input type="text" id="catNameInput" placeholder="分类名称，如：健康、学习">
+    <div class="modal-colors" id="catColors"></div>
+    <div class="modal-actions">
+      <button id="catCancel">取消</button>
+      <button class="btn-primary" id="catConfirm">创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- 设置与数据管理弹窗 -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal settings-panel">
+    <h3>设置与数据管理</h3>
+
+    <div class="settings-section">
+      <h4>数据备份与迁移</h4>
+      <p>导出所有任务、分类和对话记录为备份文件。程序更新后，在新版本中导入即可恢复全部数据。</p>
+      <div class="settings-row">
+        <button class="primary" id="exportBtn">导出备份</button>
+        <button id="importBtn">导入备份</button>
+        <input type="file" id="importFile" accept=".json,application/json">
+      </div>
+    </div>
+
+    <div class="settings-divider"></div>
+
+    <div class="settings-section">
+      <h4>一键迁移到新版本</h4>
+      <p>程序更新后，不用导出导入文件。点下面按钮，粘贴新版本的链接，数据自动带过去。</p>
+      <div class="settings-row">
+        <button id="migrateBtn" class="primary">迁移数据到新版本</button>
+      </div>
+      <p style="margin-top:8px;font-size:11px;color:var(--ink-faint);">提示：也可以直接打开新链接看数据在不在——同一个域名下浏览器数据通常是自动共享的。</p>
+    </div>
+
+    <div class="settings-divider"></div>
+
+    <div class="settings-section">
+      <h4>AI 后端配置（混合模式）</h4>
+      <p>配置后端地址后，规则识别不了的复杂表达会自动调用 AI 理解。后端部署在 Vercel，API Key 存在后端环境变量里，不会暴露。</p>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input type="text" id="apiBaseInput" placeholder="https://your-project.vercel.app/api/chat" style="flex:1;padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;background:var(--bg);">
+        <button id="saveApiBtn" style="padding:8px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:13px;cursor:pointer;font-family:inherit;">保存</button>
+      </div>
+      <p id="apiStatus" style="font-size:11px;color:var(--ink-faint);">未配置</p>
+      <div class="settings-row" style="margin-top:8px;">
+        <button id="testApiBtn">测试连接</button>
+      </div>
+      <div style="margin-top:14px;">
+        <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--ink-soft);">AI 调用模式</div>
+        <div class="ai-mode-group" id="aiModeGroup">
+          <button class="ai-mode-btn" data-mode="off">不调用</button>
+          <button class="ai-mode-btn active" data-mode="smart">智能</button>
+          <button class="ai-mode-btn" data-mode="force">强制调用</button>
+        </div>
+        <div class="ai-mode-desc" id="aiModeDesc">智能模式：简单操作走规则（免费、快），规则识别不了的复杂表达才自动调用 AI。</div>
+      </div>
+    </div>
+
+    <div class="settings-divider"></div>
+
+    <div class="settings-section">
+      <h4>数据统计</h4>
+      <p id="dataStats">加载中...</p>
+    </div>
+
+    <div class="settings-divider"></div>
+
+    <div class="settings-section">
+      <h4>危险操作</h4>
+      <p>清空所有数据后不可恢复，建议先导出备份。</p>
+      <div class="settings-row">
+        <button class="danger" id="clearDataBtn">清空全部数据</button>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px;">
+      <button id="settingsClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ===== 数据层 =====
+  const STORAGE_KEY = 'task-assistant-data-v2';
+  const CAT_KEY = 'task-assistant-categories-v2';
+  const MSG_KEY = 'task-assistant-messages-v2';
+
+  const DEFAULT_CATEGORIES = [
+    { id: 'paper',  name: '论文', color: '#3D5A80' },
+    { id: 'work',   name: '工作', color: '#4A7C59' },
+    { id: 'daily',  name: '日常', color: '#C4633A' },
+    { id: 'life',   name: '生活', color: '#6B5B95' },
+    { id: 'fun',    name: '娱乐', color: '#A23B72' }
+  ];
+
+  // 关键词自动分类
+  const CATEGORY_KEYWORDS = {
+    paper: ['论文','开题','文献','答辩','导师','实验','数据','sci','期刊','引用','摘要','综述','投稿','修改稿','博士','硕士','研究生','科研','公式','推导'],
+    work: ['开会','会议','邮件','方案','报告','客户','项目','汇报','ppt','同事','老板','deadline','需求','设计稿','评审','上线','发布','合同','报价','加班'],
+    life: ['买菜','做饭','打扫','洗衣','缴费','房租','水电','超市','快递','维修','物业','加油','洗车','体检','看病','买药','银行','签证','机票','酒店'],
+    fun: ['电影','游戏','旅行','旅游','演唱会','运动','健身','聚餐','唱歌','追剧','番','展览','演出','剧本杀','桌游','钓鱼','露营'],
+    daily: []
+  };
+
+  let tasks = [];
+  let categories = [];
+  let messages = [];
+  let currentCategory = 'all'; // all | categoryId
+  let selectedColor = '#3D5A80';
+
+  function loadData() {
+    try {
+      const t = localStorage.getItem(STORAGE_KEY);
+      if (t) tasks = JSON.parse(t);
+      const c = localStorage.getItem(CAT_KEY);
+      categories = c ? JSON.parse(c) : JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+      const m = localStorage.getItem(MSG_KEY);
+      if (m) messages = JSON.parse(m);
+    } catch(e) {}
+    if (!Array.isArray(tasks)) tasks = [];
+    if (!Array.isArray(categories) || categories.length === 0) categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+    if (!Array.isArray(messages)) messages = [];
+  }
+
+  function saveData() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      localStorage.setItem(CAT_KEY, JSON.stringify(categories));
+      localStorage.setItem(MSG_KEY, JSON.stringify(messages));
+    } catch(e) {}
+  }
+
+  function genId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+  }
+
+  function getCategory(id) {
+    return categories.find(c => c.id === id) || null;
+  }
+
+  // ===== 中文时间解析器 =====
+  const WEEKDAY_MAP = { '日':0, '天':0, '一':1, '二':2, '三':3, '四':4, '五':5, '六':6 };
+  const WEEKDAY_NAMES = ['周日','周一','周二','周三','周四','周五','周六'];
+
+  function parseDeadline(text) {
+    if (!text || typeof text !== 'string') return null;
+    const t = text.trim();
+    if (!t) return null;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let targetDate = null, hasSpecificDate = false;
+    let hour = null, minute = null, hasTime = false;
+    let matchedParts = [];
+
+    // 相对日期
+    const relMatch = t.match(/(大后天|后天|明天|今天|今日|明日)/);
+    if (relMatch) {
+      const offset = { '今天':0,'今日':0,'明天':1,'明日':1,'后天':2,'大后天':3 }[relMatch[1]];
+      if (offset !== undefined) {
+        targetDate = addDays(today, offset);
+        hasSpecificDate = true;
+        matchedParts.push(relMatch[0]);
+      }
+    }
+    // 下周一~周日
+    if (!hasSpecificDate) {
+      const nm = t.match(/下(?:个)?(?:周|星期|礼拜)([一二三四五六日天])/);
+      if (nm) {
+        const wd = WEEKDAY_MAP[nm[1]];
+        if (wd !== undefined) {
+          const thisMonday = addDays(today, (1 - today.getDay() + 7) % 7);
+          targetDate = addDays(addDays(thisMonday, 7), wd === 0 ? 6 : (wd - 1));
+          hasSpecificDate = true;
+          matchedParts.push(nm[0]);
+        }
+      }
+    }
+    // 本周/裸写周几
+    if (!hasSpecificDate) {
+      const tm = t.match(/(?:本|这)?(?:周|星期|礼拜)([一二三四五六日天])/);
+      if (tm) {
+        const wd = WEEKDAY_MAP[tm[1]];
+        if (wd !== undefined) {
+          const isExplicit = /本|这/.test(tm[0]);
+          const diff = isExplicit ? (wd - today.getDay()) : ((wd - today.getDay() + 7) % 7);
+          targetDate = addDays(today, diff);
+          hasSpecificDate = true;
+          matchedParts.push(tm[0]);
+        }
+      }
+    }
+    // X月X日
+    if (!hasSpecificDate) {
+      const md = t.match(/(\d{1,2})月(\d{1,2})[日号]/);
+      if (md) {
+        const m = parseInt(md[1],10), d = parseInt(md[2],10);
+        if (m>=1&&m<=12&&d>=1&&d<=31) {
+          let year = now.getFullYear();
+          if (new Date(year,m-1,d).getTime() < today.getTime()) year++;
+          targetDate = new Date(year,m-1,d);
+          hasSpecificDate = true;
+          matchedParts.push(md[0]);
+        }
+      }
+    }
+    // 下个月X号
+    if (!hasSpecificDate) {
+      const nm = t.match(/下个月\s*(\d{1,2})[号日]?/);
+      if (nm) {
+        const d = parseInt(nm[1],10);
+        if (d>=1&&d<=31) {
+          let year = now.getFullYear(), month = now.getMonth()+1;
+          if (month>11){month=0;year++;}
+          targetDate = new Date(year,month,d);
+          hasSpecificDate = true;
+          matchedParts.push(nm[0]);
+        }
+      }
+    }
+    // X号
+    if (!hasSpecificDate) {
+      const dm = t.match(/(\d{1,2})[号日](?!\d)/);
+      if (dm) {
+        const d = parseInt(dm[1],10);
+        if (d>=1&&d<=31) {
+          let year = now.getFullYear(), month = now.getMonth();
+          let cand = new Date(year,month,d);
+          if (cand.getTime() < today.getTime()) { month++; if(month>11){month=0;year++;} cand = new Date(year,month,d); }
+          targetDate = cand;
+          hasSpecificDate = true;
+          matchedParts.push(dm[0]);
+        }
+      }
+    }
+    // 模糊
+    if (!hasSpecificDate) {
+      if (/周末/.test(t)) {
+        targetDate = addDays(today, (6 - today.getDay() + 7) % 7);
+        hasSpecificDate = true; matchedParts.push('周末');
+      } else if (/下周|下个礼拜/.test(t)) {
+        targetDate = addDays(addDays(today,(1-today.getDay()+7)%7), 13);
+        hasSpecificDate = true; matchedParts.push('下周');
+      } else if (/本周|这周|这个礼拜/.test(t)) {
+        targetDate = addDays(today, (0-today.getDay()+7)%7);
+        hasSpecificDate = true; matchedParts.push('本周');
+      }
+    }
+
+    // 时间 HH:MM
+    const hm = t.match(/(\d{1,2})[:：](\d{2})/);
+    if (hm) {
+      const h = parseInt(hm[1],10), m = parseInt(hm[2],10);
+      if (h>=0&&h<=23&&m>=0&&m<=59) { hour=h; minute=m; hasTime=true; matchedParts.push(hm[0]); }
+    }
+    // 中文时间
+    if (!hasTime) {
+      const pm = t.match(/(上午|下午|晚上|中午|早上|凌晨|傍晚)?\s*(\d{1,2})\s*点(半|(\d{1,2})分?)?/);
+      if (pm) {
+        const period = pm[1]||'';
+        let h = parseInt(pm[2],10), m = 0;
+        if (pm[3]==='半') m=30;
+        else if (pm[4]) m=parseInt(pm[4],10);
+        if (h>=0&&h<=23&&m>=0&&m<=59) {
+          if (period==='下午'||period==='晚上'||period==='傍晚') { if(h<12)h+=12; }
+          else if (period==='中午') { if(h<12)h=12; }
+          else if (period==='凌晨') { if(h===12)h=0; }
+          hour=h; minute=m; hasTime=true; matchedParts.push(pm[0]);
+        }
+      }
+    }
+
+    if (!hasSpecificDate && !hasTime) return null;
+    if (!hasSpecificDate) targetDate = new Date(today);
+    const result = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    if (hasTime) result.setHours(hour, minute, 0, 0);
+    return { date: result, hasDate: hasSpecificDate, hasTime: hasTime, matched: matchedParts.join(' ') };
+  }
+
+  function addDays(date, n) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + n);
+    return d;
+  }
+
+  // ===== 分类解析 =====
+  function parseCategory(text) {
+    // #分类名
+    const hashMatch = text.match(/#([^\s#，,。.！!？?、]+)/);
+    if (hashMatch) {
+      const name = hashMatch[1].trim();
+      const cat = categories.find(c => c.name === name || c.id === name);
+      if (cat) return { categoryId: cat.id, matched: hashMatch[0] };
+      // 不存在则自动创建
+      const newCat = { id: genId(), name: name, color: randomColor() };
+      categories.push(newCat);
+      return { categoryId: newCat.id, matched: hashMatch[0], isNew: true };
+    }
+    // 关键词自动推断
+    const lower = text.toLowerCase();
+    for (const cat of categories) {
+      const keywords = CATEGORY_KEYWORDS[cat.id] || [];
+      for (const kw of keywords) {
+        if (lower.includes(kw.toLowerCase())) {
+          return { categoryId: cat.id, matched: '', auto: true };
+        }
+      }
+    }
+    return { categoryId: null, matched: '' };
+  }
+
+  function randomColor() {
+    const colors = ['#3D5A80','#4A7C59','#C4633A','#6B5B95','#A23B72','#2A6F97','#8B5E3C','#5C6B73','#9B5DE5','#00BBF9','#F15BB5','#FEE440'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  // ===== 中文数字 =====
+  function parseChineseNumber(s) {
+    const map = { '一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10 };
+    if (/^\d+$/.test(s)) return parseInt(s, 10);
+    if (s === '十') return 10;
+    if (s.length === 1) return map[s] || 1;
+    if (s.startsWith('十')) return 10 + (map[s[1]] || 0);
+    if (s.endsWith('十')) return (map[s[0]] || 1) * 10;
+    if (s.includes('十')) {
+      const parts = s.split('十');
+      return (map[parts[0]] || 1) * 10 + (map[parts[1]] || 0);
+    }
+    return 1;
+  }
+
+  // ===== 对话意图解析 =====
+  function parseDialog(input) {
+    const text = input.trim();
+    if (!text) return null;
+
+    // 查询意图
+    if (/^(看看|查一下|我有什么|今天有什么|本周有什么|列表|都有什么|还有什么|帮我看看|显示)/.test(text) ||
+        (/有什么|哪些|列表|安排/.test(text) && /任务|事|待办|要做/.test(text)) ||
+        (/^(今天|本周|这周|全部|所有|这个月)/.test(text) && /任务|事|待办|安排|要做|有什么/.test(text)) ||
+        (/任务|待办|事$/.test(text) && /^(今天|本周|这周|全部|所有|看看|查)/.test(text))) {
+      return { intent: 'query', ...parseQuery(text) };
+    }
+
+    // 完成意图（动词在句尾或"把XX完成"结构，避免"完成XX"被误判）
+    if (/(完成|做完|搞定|弄完|结束|办好|处理完|完结)了?$/.test(text) ||
+        /^(把|将|给).+(完成|做完|搞定|弄完|结束|办好|处理完|完结)/.test(text) ||
+        /(已经|已).*(完成|做完|搞定|结束)/.test(text)) {
+      return { intent: 'complete', target: parseTaskTarget(text) };
+    }
+
+    // 删除意图
+    if (/删除|删掉|去掉|取消|不要了|不用了|撤掉/.test(text)) {
+      return { intent: 'delete', target: parseTaskTarget(text) };
+    }
+
+    // 更新意图
+    if (/改成|改为|换成|变为|更新|修改|调整|改到|改在|推迟|提前|延到/.test(text)) {
+      return { intent: 'update', ...parseUpdate(text) };
+    }
+
+    // 默认：添加任务
+    return { intent: 'add', tasks: parseMultipleTasks(text) };
+  }
+
+  function parseQuery(text) {
+    // 提取时间范围
+    const parsed = parseDeadline(text);
+    let range = null;
+    if (parsed) {
+      if (parsed.hasTime || parsed.hasDate) {
+        range = { date: formatDateKey(parsed.date), hasTime: parsed.hasTime };
+      }
+    }
+    // 提取分类
+    const cat = parseCategory(text);
+    // 提取"今天"/"本周"/"全部"
+    if (/今天|今日/.test(text)) range = { type: 'today' };
+    else if (/本周|这周/.test(text)) range = { type: 'week' };
+    else if (/全部|所有|所有的/.test(text)) range = { type: 'all' };
+    return { range: range, categoryId: cat.categoryId };
+  }
+
+  function parseTaskTarget(text) {
+    // 序号
+    const numMatch = text.match(/第([一二三四五六七八九十\d]+)[个项条]?(?:任务|事)?/);
+    if (numMatch) {
+      return { type: 'index', index: parseChineseNumber(numMatch[1]) - 1 };
+    }
+    // "刚才那个"/"上一个"/"最近的"/"最后一个"
+    if (/刚才|刚刚|上一个|最近|最后一个|刚加的|刚说的/.test(text)) {
+      return { type: 'recent' };
+    }
+    // 关键词：去掉动词和语气词
+    let keyword = text
+      .replace(/^(把|将|给|帮我|我)?/, '')
+      .replace(/完成|搞定|做完|完结|结束|弄完|做好了|办完|处理完|删除|删掉|去掉|取消|不要了|不用了|撤掉|改成|改为|换成|变为|更新|修改|调整|改到|改在|推迟|提前|延到|了|吧|啊|呀|哦|哈/g, '')
+      .trim();
+    // 移除时间词，避免干扰任务匹配
+    const parsedForTarget = parseDeadline(keyword);
+    if (parsedForTarget && parsedForTarget.matched) {
+      parsedForTarget.matched.split(' ').forEach(p => { if (p) keyword = keyword.replace(p, ' '); });
+      keyword = keyword.replace(/\s+/g, ' ').trim();
+    }
+    return { type: 'keyword', keyword: keyword };
+  }
+
+  function parseUpdate(text) {
+    const target = parseTaskTarget(text);
+    const parsed = parseDeadline(text);
+    const cat = parseCategory(text);
+    // 新内容："改成XXX"后面
+    let newContent = null;
+    const cm = text.match(/(?:改成|改为|换成|变为|更新为|修改为)\s*(.+?)(?:$|[，,。.])/);
+    if (cm) {
+      let nc = cm[1].trim();
+      // 去掉可能的时间词，时间单独处理
+      newContent = nc;
+    }
+    return { target, newDeadline: parsed, newCategory: cat, newContent };
+  }
+
+  function parseMultipleTasks(text) {
+    let lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    // 单行尝试用逗号/分号分割
+    if (lines.length === 1) {
+      const parts = lines[0].split(/[，,；;]/).map(p => p.trim()).filter(p => p);
+      if (parts.length > 1) lines = parts;
+    }
+    return lines.map(l => parseSingleTask(l));
+  }
+
+  function parseSingleTask(line) {
+    const parsed = parseDeadline(line);
+    const cat = parseCategory(line);
+    let cleanText = line;
+    // 移除时间词
+    if (parsed && parsed.matched) {
+      parsed.matched.split(' ').forEach(p => { if (p) cleanText = cleanText.replace(p, ' '); });
+    }
+    // 移除 #分类
+    if (cat.matched) cleanText = cleanText.replace(cat.matched, ' ');
+    cleanText = cleanText.replace(/\s+/g, ' ').trim();
+    if (!cleanText) cleanText = line;
+    return {
+      text: cleanText,
+      rawText: line,
+      deadline: parsed ? formatDateKey(parsed.date) : null,
+      deadlineTs: parsed ? parsed.date.getTime() : null,
+      hasTime: parsed ? parsed.hasTime : false,
+      hasDate: parsed ? parsed.hasDate : false,
+      categoryId: cat.categoryId,
+      categoryAuto: cat.auto || false
+    };
+  }
+
+  // ===== 任务查找 =====
+  function findTask(target) {
+    const pending = tasks.filter(t => !t.done);
+    if (target.type === 'index') return pending[target.index] || null;
+    if (target.type === 'recent') return pending[pending.length - 1] || null;
+    if (target.type === 'keyword' && target.keyword) {
+      const kw = target.keyword;
+      let best = null, bestScore = 0;
+      pending.forEach(t => {
+        const full = (t.text + ' ' + t.rawText).toLowerCase();
+        if (full.includes(kw.toLowerCase())) {
+          const score = kw.length / Math.max(t.text.length, 1);
+          if (score > bestScore) { bestScore = score; best = t; }
+        }
+      });
+      // 如果没找到精确匹配，尝试部分匹配
+      if (!best) {
+        const kwChars = kw.split('');
+        pending.forEach(t => {
+          let hit = 0;
+          kwChars.forEach(c => { if (t.text.includes(c)) hit++; });
+          const score = hit / kwChars.length;
+          if (score >= 0.6 && score > bestScore) { bestScore = score; best = t; }
+        });
+      }
+      return best;
+    }
+    return null;
+  }
+
+  // ===== 执行对话意图 =====
+  function executeDialog(input) {
+    const parsed = parseDialog(input);
+    if (!parsed) return { reply: '没听懂，能再说一次吗？', taskIds: [] };
+
+    switch (parsed.intent) {
+      case 'add': return executeAdd(parsed.tasks);
+      case 'complete': return executeComplete(parsed.target);
+      case 'delete': return executeDelete(parsed.target);
+      case 'update': return executeUpdate(parsed);
+      case 'query': return executeQuery(parsed);
+      default: return { reply: '好的', taskIds: [] };
+    }
+  }
+
+  function executeAdd(taskList) {
+    const valid = taskList.filter(t => t.text);
+    if (valid.length === 0) return { reply: '没识别到任务内容，能再说清楚一点吗？', taskIds: [] };
+
+    const newIds = [];
+    valid.forEach(t => {
+      const task = {
+        id: genId(),
+        text: t.text,
+        rawText: t.rawText,
+        done: false,
+        createdAt: Date.now(),
+        deadline: t.deadline,
+        deadlineTs: t.deadlineTs,
+        hasTime: t.hasTime,
+        hasDate: t.hasDate,
+        categoryId: t.categoryId
+      };
+      tasks.push(task);
+      newIds.push(task.id);
+    });
+
+    let reply = '';
+    if (valid.length === 1) {
+      const t = valid[0];
+      const cat = t.categoryId ? getCategory(t.categoryId) : null;
+      const timeStr = t.deadline ? formatTaskTime(t) : '暂无时间';
+      reply = '好的，帮你记下来了：' + (cat ? '「' + cat.name + '」' : '') + t.text + '（' + timeStr + '）';
+    } else {
+      reply = '好的，帮你整理了 ' + valid.length + ' 件事：';
+    }
+    saveData();
+    return { reply: reply, taskIds: newIds };
+  }
+
+  function executeComplete(target) {
+    const task = findTask(target);
+    if (!task) return { reply: '没找到对应的任务，能再说清楚一点吗？（可以说"第几个"或者任务里的关键词）', taskIds: [] };
+    task.done = true;
+    task.completedAt = Date.now();
+    saveData();
+    return { reply: '搞定！已标记完成：' + task.text, taskIds: [task.id] };
+  }
+
+  function executeDelete(target) {
+    const task = findTask(target);
+    if (!task) return { reply: '没找到对应的任务，能再说清楚一点吗？', taskIds: [] };
+    const text = task.text;
+    tasks = tasks.filter(t => t.id !== task.id);
+    saveData();
+    return { reply: '好的，已删除：' + text, taskIds: [] };
+  }
+
+  function executeUpdate(parsed) {
+    const task = findTask(parsed.target);
+    if (!task) return { reply: '没找到对应的任务，能再说清楚一点吗？', taskIds: [] };
+
+    const changes = [];
+    if (parsed.newDeadline) {
+      task.deadline = formatDateKey(parsed.newDeadline.date);
+      task.deadlineTs = parsed.newDeadline.date.getTime();
+      task.hasTime = parsed.newDeadline.hasTime;
+      task.hasDate = parsed.newDeadline.hasDate;
+      changes.push('时间改为 ' + formatTaskTime(task));
+    }
+    if (parsed.newCategory && parsed.newCategory.categoryId) {
+      task.categoryId = parsed.newCategory.categoryId;
+      const cat = getCategory(parsed.newCategory.categoryId);
+      changes.push('分类改为「' + (cat ? cat.name : '未分类') + '」');
+    }
+    if (parsed.newContent && parsed.newContent !== task.text) {
+      // 新内容可能也包含时间，重新解析
+      const reParsed = parseSingleTask(parsed.newContent);
+      if (reParsed.text && reParsed.text !== task.text) {
+        task.text = reParsed.text;
+        task.rawText = parsed.newContent;
+        if (reParsed.deadline && !parsed.newDeadline) {
+          task.deadline = reParsed.deadline;
+          task.deadlineTs = reParsed.deadlineTs;
+          task.hasTime = reParsed.hasTime;
+          task.hasDate = reParsed.hasDate;
+        }
+        if (reParsed.categoryId && !parsed.newCategory) {
+          task.categoryId = reParsed.categoryId;
+        }
+        changes.push('内容更新');
+      }
+    }
+
+    if (changes.length === 0) return { reply: '没识别到要更新什么，可以说"把XX改成YY"或者"把XX改到周五"', taskIds: [task.id] };
+    saveData();
+    return { reply: '已更新「' + task.text + '」：' + changes.join('，'), taskIds: [task.id] };
+  }
+
+  function executeQuery(parsed) {
+    let list = tasks.filter(t => !t.done);
+    let desc = '全部待办';
+
+    if (parsed.categoryId) {
+      list = list.filter(t => t.categoryId === parsed.categoryId);
+      const cat = getCategory(parsed.categoryId);
+      desc = '「' + (cat ? cat.name : '未分类') + '」分类';
+    }
+
+    if (parsed.range) {
+      if (parsed.range.type === 'today') {
+        const todayKey = formatDateKey(new Date());
+        list = list.filter(t => t.deadline === todayKey);
+        desc = '今天';
+      } else if (parsed.range.type === 'week') {
+        const now = new Date();
+        const monday = addDays(now, (1 - now.getDay() + 7) % 7);
+        const sunday = addDays(monday, 6);
+        list = list.filter(t => t.deadlineTs && t.deadlineTs >= monday.getTime() && t.deadlineTs <= sunday.getTime() + 86400000);
+        desc = '本周';
+      } else if (parsed.range.date) {
+        list = list.filter(t => t.deadline === parsed.range.date);
+        desc = parsed.range.date;
+      }
+    }
+
+    if (list.length === 0) {
+      return { reply: desc + '目前没有任务，轻松！', taskIds: [] };
+    }
+
+    // 按时间排序
+    list.sort((a, b) => {
+      if (!a.deadlineTs && !b.deadlineTs) return b.createdAt - a.createdAt;
+      if (!a.deadlineTs) return 1;
+      if (!b.deadlineTs) return -1;
+      return a.deadlineTs - b.deadlineTs;
+    });
+
+    const ids = list.map(t => t.id);
+    return { reply: desc + '有 ' + list.length + ' 项：', taskIds: ids, queryList: list };
+  }
+
+  // ===== 格式化 =====
+  function formatDateKey(date) {
+    return date.getFullYear() + '-' + (date.getMonth()+1) + '-' + date.getDate();
+  }
+  function formatDateLabel(date) {
+    return (date.getMonth()+1) + '月' + date.getDate() + '日';
+  }
+  function formatDateSub(date) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const diff = Math.round((date - today) / 86400000);
+    let rel = '';
+    if (diff === 0) rel = '今天';
+    else if (diff === 1) rel = '明天';
+    else if (diff === 2) rel = '后天';
+    else if (diff === -1) rel = '昨天';
+    else if (diff < 0) rel = Math.abs(diff) + '天前';
+    else rel = diff + '天后';
+    return WEEKDAY_NAMES[date.getDay()] + ' · ' + rel;
+  }
+  function formatTime(date, hasTime) {
+    if (!hasTime) return '';
+    const h = date.getHours(), m = date.getMinutes();
+    let period = h<6?'凌晨':h<12?'上午':h<14?'中午':h<18?'下午':'晚上';
+    const dh = h>12?h-12:(h===0?12:h);
+    return period + dh + ':' + (m<10?'0':'') + m;
+  }
+  function formatTaskTime(task) {
+    if (!task.deadline) return '暂无时间';
+    const d = new Date(task.deadlineTs);
+    return formatDateLabel(d) + (task.hasTime ? ' ' + formatTime(d, task.hasTime) : '');
+  }
+  function isOverdue(task) {
+    if (!task.deadline) return false;
+    const now = new Date();
+    if (task.hasTime) return task.deadlineTs < now.getTime();
+    const eod = new Date(task.deadlineTs);
+    eod.setHours(23,59,59,999);
+    return eod.getTime() < now.getTime();
+  }
+
+  // ===== 消息渲染 =====
+  function addMessage(role, text, taskIds, queryList) {
+    const msg = {
+      id: genId(),
+      role: role,
+      text: text,
+      taskIds: taskIds || [],
+      queryList: queryList || null,
+      timestamp: Date.now()
+    };
+    messages.push(msg);
+    if (messages.length > 100) messages = messages.slice(-100);
+    saveData();
+    renderMessages();
+    return msg.id;
+  }
+
+  function renderMessages() {
+    const container = document.getElementById('chatMessages');
+    container.innerHTML = '';
+    messages.forEach(msg => {
+      container.appendChild(createMessageElement(msg));
+    });
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function createMessageElement(msg) {
+    const row = document.createElement('div');
+    row.className = 'msg-row ' + msg.role;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar';
+    avatar.textContent = msg.role === 'assistant' ? '助' : '我';
+    row.appendChild(avatar);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.textContent = msg.text;
+
+    // 助手消息中嵌入任务卡片
+    if (msg.role === 'assistant' && msg.taskIds && msg.taskIds.length > 0) {
+      const cards = document.createElement('div');
+      cards.className = 'msg-task-cards';
+      let taskList = [];
+      if (msg.queryList) {
+        taskList = msg.queryList;
+      } else {
+        taskList = msg.taskIds.map(id => tasks.find(t => t.id === id)).filter(Boolean);
+      }
+      taskList.forEach(task => {
+        cards.appendChild(createMsgTaskCard(task));
+      });
+      bubble.appendChild(cards);
+    }
+
+    const time = document.createElement('div');
+    time.className = 'msg-time';
+    const d = new Date(msg.timestamp);
+    time.textContent = (d.getHours()<10?'0':'') + d.getHours() + ':' + (d.getMinutes()<10?'0':'') + d.getMinutes();
+    bubble.appendChild(time);
+
+    row.appendChild(bubble);
+    return row;
+  }
+
+  function createMsgTaskCard(task) {
+    const card = document.createElement('div');
+    card.className = 'msg-task-card' + (task.done ? ' done' : '');
+    const cat = task.categoryId ? getCategory(task.categoryId) : null;
+
+    const dot = document.createElement('div');
+    dot.className = 'mtc-dot';
+    dot.style.background = cat ? cat.color : 'var(--ink-faint)';
+    card.appendChild(dot);
+
+    const body = document.createElement('div');
+    body.className = 'mtc-body';
+
+    const text = document.createElement('div');
+    text.className = 'mtc-text';
+    text.textContent = task.text;
+    body.appendChild(text);
+
+    const meta = document.createElement('div');
+    meta.className = 'mtc-meta';
+    if (cat) {
+      const ct = document.createElement('span');
+      ct.className = 'mtc-tag cat';
+      ct.style.background = cat.color;
+      ct.textContent = cat.name;
+      meta.appendChild(ct);
+    }
+    if (task.deadline) {
+      const d = new Date(task.deadlineTs);
+      const overdue = isOverdue(task);
+      const tt = document.createElement('span');
+      tt.className = 'mtc-tag time' + (overdue ? ' overdue' : '');
+      tt.textContent = (overdue ? '已逾期 · ' : '') + formatDateLabel(d) + (task.hasTime ? ' ' + formatTime(d, task.hasTime) : '');
+      meta.appendChild(tt);
+    }
+    if (task.done) {
+      const dt = document.createElement('span');
+      dt.className = 'mtc-tag done-tag';
+      dt.textContent = '已完成';
+      meta.appendChild(dt);
+    }
+    body.appendChild(meta);
+    card.appendChild(body);
+    return card;
+  }
+
+  // ===== 看板渲染 =====
+  function renderBoard() {
+    const content = document.getElementById('boardContent');
+    const empty = document.getElementById('boardEmpty');
+
+    // 按分类筛选
+    let filtered = tasks.filter(t => !t.done);
+    if (currentCategory !== 'all') {
+      filtered = filtered.filter(t => t.categoryId === currentCategory);
+    }
+
+    document.getElementById('boardCount').textContent = '共 ' + filtered.length + ' 项待办';
+
+    if (filtered.length === 0) {
+      content.innerHTML = '';
+      content.appendChild(empty);
+      empty.style.display = '';
+      if (currentCategory !== 'all') {
+        const cat = getCategory(currentCategory);
+        empty.textContent = '「' + (cat?cat.name:'') + '」分类下还没有任务';
+      } else {
+        empty.textContent = '还没有任务，在左边跟助手说一声吧';
+      }
+      return;
+    }
+    empty.style.display = 'none';
+    content.innerHTML = '';
+
+    // 有时间的
+    const timed = filtered.filter(t => t.deadline);
+    if (timed.length > 0) {
+      content.appendChild(createBoardSection('有时间安排', 'today-bar', createTimeline(timed)));
+    }
+
+    // 无时间的
+    const untimed = filtered.filter(t => !t.deadline);
+    if (untimed.length > 0) {
+      const list = document.createElement('div');
+      list.className = 'task-list';
+      untimed.sort((a,b) => b.createdAt - a.createdAt);
+      untimed.forEach(t => list.appendChild(createBoardTask(t)));
+      content.appendChild(createBoardSection('待安排', '', list));
+    }
+
+    // 已完成
+    const doneList = tasks.filter(t => t.done);
+    if (currentCategory === 'all' && doneList.length > 0) {
+      const section = document.createElement('div');
+      section.className = 'board-section';
+      const title = document.createElement('div');
+      title.className = 'board-section-title';
+      title.innerHTML = '<span class="bar"></span>已完成';
+      const toggle = document.createElement('button');
+      toggle.className = 'done-toggle';
+      toggle.innerHTML = '<span class="arrow">&#9654;</span>' + doneList.length + ' 项';
+      toggle.style.marginLeft = 'auto';
+      title.appendChild(toggle);
+      section.appendChild(title);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'done-list-wrap';
+      const list = document.createElement('div');
+      list.className = 'task-list';
+      doneList.sort((a,b) => (b.completedAt||b.createdAt) - (a.completedAt||a.createdAt));
+      doneList.forEach(t => list.appendChild(createBoardTask(t)));
+      wrap.appendChild(list);
+      section.appendChild(wrap);
+
+      toggle.addEventListener('click', () => {
+        wrap.classList.toggle('show');
+        toggle.classList.toggle('open');
+      });
+      content.appendChild(section);
+    }
+  }
+
+  function createBoardSection(title, barClass, contentEl) {
+    const section = document.createElement('div');
+    section.className = 'board-section';
+    const t = document.createElement('div');
+    t.className = 'board-section-title';
+    t.innerHTML = '<span class="bar ' + barClass + '"></span>' + title;
+    section.appendChild(t);
+    section.appendChild(contentEl);
+    return section;
+  }
+
+  function createTimeline(taskList) {
+    const scroll = document.createElement('div');
+    scroll.className = 'timeline-scroll';
+    const grid = document.createElement('div');
+    grid.className = 'timeline-grid';
+
+    const groups = {};
+    taskList.forEach(t => {
+      if (!groups[t.deadline]) groups[t.deadline] = [];
+      groups[t.deadline].push(t);
+    });
+
+    const sortedKeys = Object.keys(groups).sort((a,b) => groups[a][0].deadlineTs - groups[b][0].deadlineTs);
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    sortedKeys.forEach(key => {
+      const groupTasks = groups[key];
+      const date = new Date(groupTasks[0].deadlineTs);
+      const isToday = date.getTime() === today.getTime();
+
+      const col = document.createElement('div');
+      col.className = 'date-column' + (isToday ? ' is-today' : '');
+
+      const header = document.createElement('div');
+      header.className = 'date-col-header';
+      header.innerHTML =
+        '<div class="date-col-main">' + formatDateLabel(date) +
+        (isToday ? '<span class="today-badge">今天</span>' : '') + '</div>' +
+        '<div class="date-col-sub">' + formatDateSub(date) + '</div>';
+      col.appendChild(header);
+
+      const body = document.createElement('div');
+      body.className = 'date-col-body';
+      groupTasks.sort((a,b) => {
+        if (a.hasTime && !b.hasTime) return -1;
+        if (!a.hasTime && b.hasTime) return 1;
+        return a.deadlineTs - b.deadlineTs;
+      });
+      groupTasks.forEach(t => body.appendChild(createBoardTask(t)));
+      col.appendChild(body);
+      grid.appendChild(col);
+    });
+
+    scroll.appendChild(grid);
+    return scroll;
+  }
+
+  function createBoardTask(task) {
+    const el = document.createElement('div');
+    el.className = 'board-task' + (task.done ? ' done' : '');
+    el.title = '点击在对话中查看';
+    const cat = task.categoryId ? getCategory(task.categoryId) : null;
+
+    const dot = document.createElement('div');
+    dot.className = 'bt-dot';
+    dot.style.background = cat ? cat.color : 'var(--ink-faint)';
+    el.appendChild(dot);
+
+    const body = document.createElement('div');
+    body.className = 'bt-body';
+
+    const text = document.createElement('div');
+    text.className = 'bt-text';
+    text.textContent = task.text;
+    body.appendChild(text);
+
+    const meta = document.createElement('div');
+    meta.className = 'bt-meta';
+    if (cat) {
+      const ct = document.createElement('span');
+      ct.className = 'bt-tag';
+      ct.style.background = cat.color + '22';
+      ct.style.color = cat.color;
+      ct.textContent = cat.name;
+      meta.appendChild(ct);
+    }
+    if (task.deadline) {
+      const d = new Date(task.deadlineTs);
+      const overdue = isOverdue(task);
+      const tt = document.createElement('span');
+      tt.className = 'bt-tag time' + (overdue ? ' overdue' : '');
+      tt.textContent = (overdue ? '逾期·' : '') + (task.hasTime ? formatTime(d, true) : formatDateLabel(d));
+      meta.appendChild(tt);
+    }
+    body.appendChild(meta);
+    el.appendChild(body);
+
+    // 点击看板任务，在对话中定位
+    el.addEventListener('click', () => {
+      const catName = cat ? cat.name : '未分类';
+      addMessage('assistant', '这是「' + catName + '」的任务：' + task.text +
+        (task.deadline ? '（' + formatTaskTime(task) + '）' : '') +
+        '。可以直接告诉我要修改、完成或删除。', [task.id]);
+    });
+
+    return el;
+  }
+
+  // ===== 分类栏渲染 =====
+  function renderCategoryBar() {
+    const bar = document.getElementById('categoryBar');
+    bar.innerHTML = '';
+
+    // 全部
+    const allChip = createCatChip('all', '全部', null, tasks.filter(t => !t.done).length);
+    bar.appendChild(allChip);
+
+    // 各分类
+    categories.forEach(cat => {
+      const count = tasks.filter(t => !t.done && t.categoryId === cat.id).length;
+      bar.appendChild(createCatChip(cat.id, cat.name, cat.color, count));
+    });
+
+    // 添加按钮
+    const add = document.createElement('div');
+    add.className = 'cat-chip cat-add';
+    add.textContent = '+ 新建';
+    add.addEventListener('click', openCatModal);
+    bar.appendChild(add);
+  }
+
+  function createCatChip(id, name, color, count) {
+    const chip = document.createElement('div');
+    chip.className = 'cat-chip' + (currentCategory === id ? ' active' : '');
+    if (color) {
+      const dot = document.createElement('span');
+      dot.className = 'cat-dot';
+      dot.style.background = color;
+      chip.appendChild(dot);
+    }
+    const label = document.createElement('span');
+    label.textContent = name;
+    chip.appendChild(label);
+    const num = document.createElement('span');
+    num.className = 'cat-num';
+    num.textContent = count;
+    chip.appendChild(num);
+    chip.addEventListener('click', () => {
+      currentCategory = id;
+      renderCategoryBar();
+      renderBoard();
+    });
+    return chip;
+  }
+
+  // ===== 分类弹窗 =====
+  function openCatModal() {
+    document.getElementById('catNameInput').value = '';
+    const colorsDiv = document.getElementById('catColors');
+    colorsDiv.innerHTML = '';
+    const palette = ['#3D5A80','#4A7C59','#C4633A','#6B5B95','#A23B72','#2A6F97','#8B5E3C','#5C6B73','#9B5DE5','#00BBF9','#F15BB5','#E8B923'];
+    selectedColor = palette[0];
+    palette.forEach((c, i) => {
+      const opt = document.createElement('div');
+      opt.className = 'color-option' + (i === 0 ? ' selected' : '');
+      opt.style.background = c;
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        selectedColor = c;
+      });
+      colorsDiv.appendChild(opt);
+    });
+    document.getElementById('catModal').classList.add('show');
+    setTimeout(() => document.getElementById('catNameInput').focus(), 100);
+  }
+
+  function closeCatModal() {
+    document.getElementById('catModal').classList.remove('show');
+  }
+
+  // ===== 统计 =====
+  function renderStats() {
+    document.getElementById('statPending').textContent = tasks.filter(t => !t.done).length;
+    document.getElementById('statDone').textContent = tasks.filter(t => t.done).length;
+  }
+
+  // ===== 全局渲染 =====
+  function renderAll() {
+    renderStats();
+    renderMessages();
+    renderCategoryBar();
+    renderBoard();
+  }
+
+  // ===== 发送消息 =====
+  function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    addMessage('user', text);
+    input.value = '';
+    input.style.height = 'auto';
+
+    setTimeout(async () => {
+      // 先跑规则匹配
+      const result = executeDialog(text);
+      const apiBase = localStorage.getItem('ai_api_base');
+      const aiMode = localStorage.getItem('ai_mode') || 'smart';
+
+      // 根据模式判断是否需要 AI
+      const ruleFailed = /没找到|没听懂|没识别到|没对应|再说清楚/.test(result.reply);
+      let needAI = false;
+      if (apiBase) {
+        if (aiMode === 'force') needAI = true;
+        else if (aiMode === 'smart' && ruleFailed) needAI = true;
+      }
+
+      if (needAI) {
+        // 显示思考中
+        const thinkingId = addMessage('assistant', '规则没匹配到，正在用 AI 理解...', []);
+        try {
+          const aiResult = await callAI(text);
+          // 移除思考消息
+          messages = messages.filter(m => m.id !== thinkingId);
+          if (aiResult && aiResult.intent) {
+            const execResult = executeAIResult(aiResult);
+            addMessage('assistant', execResult.reply, execResult.taskIds, execResult.queryList);
+          } else {
+            addMessage('assistant', result.reply, result.taskIds, result.queryList);
+          }
+        } catch (e) {
+          messages = messages.filter(m => m.id !== thinkingId);
+          addMessage('assistant', result.reply + '（AI 调用失败，已用规则结果）', result.taskIds, result.queryList);
+        }
+      } else {
+        addMessage('assistant', result.reply, result.taskIds, result.queryList);
+      }
+
+      renderStats();
+      renderCategoryBar();
+      renderBoard();
+    }, 300);
+  }
+
+  // ===== AI 兜底调用 =====
+  async function callAI(input) {
+    const apiBase = localStorage.getItem('ai_api_base');
+    if (!apiBase) return null;
+    try {
+      const res = await fetch(apiBase, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: input, tasks: tasks, categories: categories })
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      console.error('AI call failed:', e);
+      return null;
+    }
+  }
+
+  function findOrCreateCategory(name) {
+    if (!name) return null;
+    const existing = categories.find(c => c.name === name);
+    if (existing) return existing.id;
+    const cat = { id: genId(), name: name, color: randomColor() };
+    categories.push(cat);
+    return cat.id;
+  }
+
+  function findTaskByAI(result) {
+    const pending = tasks.filter(t => !t.done);
+    if (result.targetIndex !== null && result.targetIndex !== undefined &&
+        result.targetIndex >= 0 && result.targetIndex < pending.length) {
+      return pending[result.targetIndex];
+    }
+    if (result.targetKeyword) {
+      const kw = result.targetKeyword.toLowerCase();
+      let best = null, bestScore = 0;
+      pending.forEach(t => {
+        const full = (t.text + ' ' + (t.rawText || '')).toLowerCase();
+        if (full.includes(kw)) {
+          const score = kw.length / Math.max(t.text.length, 1);
+          if (score > bestScore) { bestScore = score; best = t; }
+        }
+      });
+      // 模糊匹配
+      if (!best) {
+        const kwChars = kw.split('');
+        pending.forEach(t => {
+          let hit = 0;
+          kwChars.forEach(c => { if (t.text.includes(c)) hit++; });
+          const score = hit / Math.max(kwChars.length, 1);
+          if (score >= 0.6 && score > bestScore) { bestScore = score; best = t; }
+        });
+      }
+      return best;
+    }
+    return null;
+  }
+
+  function executeAIResult(result) {
+    if (!result || !result.intent) {
+      return { reply: 'AI 没有返回有效结果，请换个说法试试。', taskIds: [] };
+    }
+
+    switch (result.intent) {
+      case 'add': {
+        const newIds = [];
+        (result.tasks || []).forEach(t => {
+          if (!t.text) return;
+          const task = {
+            id: genId(),
+            text: t.text,
+            rawText: t.text,
+            done: false,
+            createdAt: Date.now(),
+            deadline: t.deadline || null,
+            deadlineTs: t.deadline ? new Date(t.deadline).getTime() : null,
+            hasTime: t.hasTime || false,
+            hasDate: !!t.deadline,
+            categoryId: findOrCreateCategory(t.categoryName)
+          };
+          if (t.hasTime && t.deadline) {
+            const d = new Date(task.deadlineTs);
+            d.setHours(t.hour || 0, t.minute || 0, 0, 0);
+            task.deadlineTs = d.getTime();
+          }
+          tasks.push(task);
+          newIds.push(task.id);
+        });
+        saveData();
+        return { reply: result.reply || '已添加任务', taskIds: newIds };
+      }
+
+      case 'complete': {
+        const target = findTaskByAI(result);
+        if (!target) return { reply: result.reply || '没找到对应的任务', taskIds: [] };
+        target.done = true;
+        target.completedAt = Date.now();
+        saveData();
+        return { reply: result.reply || '已标记完成', taskIds: [target.id] };
+      }
+
+      case 'delete': {
+        const target = findTaskByAI(result);
+        if (!target) return { reply: result.reply || '没找到对应的任务', taskIds: [] };
+        tasks = tasks.filter(t => t.id !== target.id);
+        saveData();
+        return { reply: result.reply || '已删除', taskIds: [] };
+      }
+
+      case 'update': {
+        const target = findTaskByAI(result);
+        if (!target) return { reply: result.reply || '没找到对应的任务', taskIds: [] };
+        const changes = result.changes || {};
+        if (changes.text) { target.text = changes.text; target.rawText = changes.text; }
+        if (changes.deadline) {
+          target.deadline = changes.deadline;
+          target.deadlineTs = new Date(changes.deadline).getTime();
+          target.hasDate = true;
+          if (changes.hasTime) {
+            const d = new Date(target.deadlineTs);
+            d.setHours(changes.hour || 0, changes.minute || 0, 0, 0);
+            target.deadlineTs = d.getTime();
+            target.hasTime = true;
+          } else {
+            target.hasTime = false;
+          }
+        }
+        if (changes.categoryName) {
+          target.categoryId = findOrCreateCategory(changes.categoryName);
+        }
+        saveData();
+        return { reply: result.reply || '已更新', taskIds: [target.id] };
+      }
+
+      case 'query': {
+        return { reply: result.reply || '查询完成', taskIds: [] };
+      }
+
+      case 'chat':
+      default:
+        return { reply: result.reply || '好的', taskIds: [] };
+    }
+  }
+
+  // ===== 事件绑定 =====
+  function bindEvents() {
+    document.getElementById('btnSend').addEventListener('click', sendMessage);
+    const input = document.getElementById('chatInput');
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    // 自动高度
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    });
+
+    // 分类弹窗
+    document.getElementById('catCancel').addEventListener('click', closeCatModal);
+    document.getElementById('catConfirm').addEventListener('click', () => {
+      const name = document.getElementById('catNameInput').value.trim();
+      if (!name) { showToast('请输入分类名称'); return; }
+      if (categories.find(c => c.name === name)) { showToast('分类已存在'); return; }
+      categories.push({ id: genId(), name: name, color: selectedColor });
+      saveData();
+      closeCatModal();
+      renderCategoryBar();
+      renderBoard();
+      showToast('已创建分类「' + name + '」');
+    });
+    document.getElementById('catModal').addEventListener('click', (e) => {
+      if (e.target.id === 'catModal') closeCatModal();
+    });
+
+    // 移动端 Tab
+    document.querySelectorAll('.mobile-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const layout = document.getElementById('appLayout');
+        if (tab.dataset.tab === 'board') {
+          layout.classList.add('show-board');
+        } else {
+          layout.classList.remove('show-board');
+        }
+      });
+    });
+
+    // 设置面板
+    document.getElementById('settingsBtn').addEventListener('click', openSettings);
+    document.getElementById('settingsClose').addEventListener('click', closeSettings);
+    document.getElementById('settingsModal').addEventListener('click', (e) => {
+      if (e.target.id === 'settingsModal') closeSettings();
+    });
+    document.getElementById('exportBtn').addEventListener('click', exportData);
+    document.getElementById('importBtn').addEventListener('click', () => {
+      document.getElementById('importFile').click();
+    });
+    document.getElementById('importFile').addEventListener('change', importData);
+    document.getElementById('clearDataBtn').addEventListener('click', clearAllData);
+    document.getElementById('migrateBtn').addEventListener('click', migrateToNewVersion);
+
+    // AI 后端配置
+    const savedApi = localStorage.getItem('ai_api_base');
+    if (savedApi) {
+      document.getElementById('apiBaseInput').value = savedApi;
+      document.getElementById('apiStatus').textContent = '已配置';
+      document.getElementById('apiStatus').style.color = 'var(--accent)';
+    }
+    document.getElementById('saveApiBtn').addEventListener('click', () => {
+      const url = document.getElementById('apiBaseInput').value.trim();
+      if (!url) {
+        localStorage.removeItem('ai_api_base');
+        document.getElementById('apiStatus').textContent = '已清除';
+        document.getElementById('apiStatus').style.color = 'var(--ink-faint)';
+        showToast('已清除 AI 后端配置');
+        return;
+      }
+      if (!/^https?:\/\//.test(url)) {
+        showToast('请输入完整的 http(s) 链接');
+        return;
+      }
+      localStorage.setItem('ai_api_base', url);
+      document.getElementById('apiStatus').textContent = '已保存';
+      document.getElementById('apiStatus').style.color = 'var(--accent)';
+      showToast('AI 后端地址已保存');
+    });
+    document.getElementById('testApiBtn').addEventListener('click', async () => {
+      const url = document.getElementById('apiBaseInput').value.trim();
+      if (!url) { showToast('请先输入后端地址'); return; }
+      document.getElementById('apiStatus').textContent = '测试中...';
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input: '测试连接', tasks: [], categories: [] })
+        });
+        if (res.ok) {
+          document.getElementById('apiStatus').textContent = '连接成功';
+          document.getElementById('apiStatus').style.color = '#4A7C59';
+          showToast('AI 后端连接成功');
+        } else {
+          const data = await res.json().catch(() => ({}));
+          document.getElementById('apiStatus').textContent = '连接失败：' + (data.error || res.status);
+          document.getElementById('apiStatus').style.color = 'var(--today)';
+        }
+      } catch (e) {
+        document.getElementById('apiStatus').textContent = '连接失败：' + e.message;
+        document.getElementById('apiStatus').style.color = 'var(--today)';
+      }
+    });
+
+    // AI 调用模式切换
+    const modeDescs = {
+      off: '不调用：纯规则匹配，完全不使用 AI。适合网络不好或想完全免费时使用。',
+      smart: '智能模式：简单操作走规则（免费、快），规则识别不了的复杂表达才自动调用 AI。推荐默认。',
+      force: '强制调用：每次对话都走 AI 理解，规则只作为 AI 失败时的兜底。理解力最强，但每次都有 API 调用成本和 1-3 秒延迟。'
+    };
+    const savedMode = localStorage.getItem('ai_mode') || 'smart';
+    document.querySelectorAll('.ai-mode-btn').forEach(btn => {
+      if (btn.dataset.mode === savedMode) btn.classList.add('active');
+      else btn.classList.remove('active');
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.ai-mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const mode = btn.dataset.mode;
+        localStorage.setItem('ai_mode', mode);
+        document.getElementById('aiModeDesc').textContent = modeDescs[mode];
+        const labels = { off: '不调用', smart: '智能', force: '强制调用' };
+        showToast('AI 模式已切换为：' + labels[mode]);
+      });
+    });
+    document.getElementById('aiModeDesc').textContent = modeDescs[savedMode];
+  }
+
+  // ===== 数据管理：导出/导入/清空 =====
+  function openSettings() {
+    updateDataStats();
+    document.getElementById('settingsModal').classList.add('show');
+  }
+  function closeSettings() {
+    document.getElementById('settingsModal').classList.remove('show');
+  }
+  function updateDataStats() {
+    const pending = tasks.filter(t => !t.done).length;
+    const done = tasks.filter(t => t.done).length;
+    const timed = tasks.filter(t => t.deadline).length;
+    const el = document.getElementById('dataStats');
+    if (el) {
+      el.innerHTML =
+        '共 <b>' + tasks.length + '</b> 条任务（待办 ' + pending + ' · 已完成 ' + done + '），' +
+        '其中有时间安排 ' + timed + ' 条；<br>' +
+        '分类 <b>' + categories.length + '</b> 个；对话记录 <b>' + messages.length + '</b> 条。';
+    }
+  }
+  function exportData() {
+    const data = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      tasks: tasks,
+      categories: categories,
+      messages: messages
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    const fname = '任务助手备份_' + d.getFullYear() +
+      (d.getMonth()+1 < 10 ? '0' : '') + (d.getMonth()+1) +
+      (d.getDate() < 10 ? '0' : '') + d.getDate() + '.json';
+    a.href = url;
+    a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('已导出备份文件');
+  }
+  function importData(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data || !Array.isArray(data.tasks)) {
+          showToast('文件格式不正确');
+          return;
+        }
+        // 确认导入
+        const count = data.tasks.length;
+        if (!confirm('将导入 ' + count + ' 条任务、' + (data.categories?data.categories.length:0) + '个分类。\n当前数据将被覆盖，确定继续吗？')) {
+          e.target.value = '';
+          return;
+        }
+        tasks = data.tasks;
+        if (Array.isArray(data.categories)) categories = data.categories;
+        if (Array.isArray(data.messages)) messages = data.messages;
+        saveData();
+        renderAll();
+        updateDataStats();
+        showToast('已导入 ' + count + ' 条任务');
+      } catch(err) {
+        showToast('导入失败：文件无法解析');
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  }
+  function clearAllData() {
+    if (!confirm('确定要清空所有数据吗？\n包括所有任务、分类和对话记录，此操作不可恢复！\n建议先导出备份。')) return;
+    tasks = [];
+    categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+    messages = [];
+    saveData();
+    renderAll();
+    updateDataStats();
+    closeSettings();
+    showToast('已清空全部数据');
+    // 重新添加欢迎消息
+    addMessage('assistant', '数据已清空。你好！我是你的任务整理助手，直接告诉我要做的事就行。', []);
+  }
+
+  // ===== 一键迁移：数据编码到 URL =====
+  function encodeMigrationData() {
+    const data = {
+      v: 2,
+      t: tasks,
+      c: categories,
+      m: messages
+    };
+    const json = JSON.stringify(data);
+    // base64url 编码
+    const b64 = btoa(unescape(encodeURIComponent(json)));
+    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function decodeMigrationData(encoded) {
+    try {
+      let b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) b64 += '=';
+      const json = decodeURIComponent(escape(atob(b64)));
+      const data = JSON.parse(json);
+      if (data && Array.isArray(data.t)) return data;
+      return null;
+    } catch(e) { return null; }
+  }
+  function migrateToNewVersion() {
+    if (tasks.length === 0 && messages.length === 0) {
+      showToast('当前没有数据需要迁移');
+      return;
+    }
+    const newUrl = prompt('请粘贴新版本的链接：', '');
+    if (!newUrl) return;
+    newUrl = newUrl.trim();
+    if (!/^https?:\/\//.test(newUrl)) {
+      showToast('链接格式不正确，请输入完整的 http(s) 链接');
+      return;
+    }
+    const encoded = encodeMigrationData();
+    if (encoded.length > 6500) {
+      if (!confirm('数据较多（' + tasks.length + '条任务），网址可能超长。\n建议改用导出备份文件的方式迁移。\n\n仍然尝试用网址迁移吗？')) return;
+    }
+    // 拼接到 URL hash（去掉原有的 hash）
+    const baseUrl = newUrl.split('#')[0];
+    const target = baseUrl + '#migrate=' + encoded;
+    // 打开新版本
+    window.open(target, '_blank');
+    showToast('已在新标签页打开新版本，数据将自动导入');
+  }
+  function checkMigrationFromUrl() {
+    const hash = window.location.hash;
+    if (!hash || !hash.includes('#migrate=')) return false;
+    const match = hash.match(/#migrate=(.+)/);
+    if (!match) return false;
+    const data = decodeMigrationData(match[1]);
+    if (!data) {
+      showToast('迁移数据解析失败，请改用导出导入');
+      // 清除错误的 hash
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      return false;
+    }
+    // 确认导入
+    const taskCount = data.t.length;
+    if (!confirm('检测到迁移数据：' + taskCount + '条任务、' + (data.c?data.c.length:0) + '个分类。\n\n是否导入？当前数据将被覆盖。')) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      return false;
+    }
+    tasks = data.t;
+    if (Array.isArray(data.c)) categories = data.c;
+    if (Array.isArray(data.m)) messages = data.m;
+    saveData();
+    // 清除 hash
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    renderAll();
+    showToast('迁移成功！已导入 ' + taskCount + ' 条任务');
+    return true;
+  }
+
+  // ===== Toast =====
+  let toastTimer = null;
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  // ===== 初始化 =====
+  loadData();
+  bindEvents();
+
+  // 检测网址中是否有迁移数据，有则自动导入
+  const migrated = checkMigrationFromUrl();
+
+  // 首次使用添加欢迎消息
+  if (!migrated && messages.length === 0) {
+    addMessage('assistant', '你好！我是你的任务整理助手。\n\n直接告诉我要做的事就行，比如：\n• 明天下午3点 #论文 交开题报告\n• 买咖啡豆 #生活\n• 周五前完成周报 #工作\n\n我会自动帮你分类、排时间。任务做完了、要改时间、要删除，直接跟我说就行。', []);
+  }
+
+  renderAll();
+
+})();
+</script>
+</body>
+</html>
