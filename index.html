@@ -941,6 +941,16 @@ body {
       </div>
     </div>
 
+    <div class="settings-divider"></div>
+
+    <div class="settings-section">
+      <h4>应用更新</h4>
+      <p>程序更新后，点下面按钮重新加载最新版本（桌面图标模式无法下拉刷新，用这个）。</p>
+      <div class="settings-row">
+        <button id="refreshPageBtn">刷新页面</button>
+      </div>
+    </div>
+
     <div class="modal-actions" style="margin-top:20px;">
       <button id="settingsClose">关闭</button>
     </div>
@@ -2190,6 +2200,9 @@ body {
     document.getElementById('importFile').addEventListener('change', importData);
     document.getElementById('clearDataBtn').addEventListener('click', clearAllData);
     document.getElementById('migrateBtn').addEventListener('click', migrateToNewVersion);
+    document.getElementById('refreshPageBtn').addEventListener('click', () => {
+      location.reload();
+    });
 
     // AI 后端配置
     const savedApi = localStorage.getItem('ai_api_base');
